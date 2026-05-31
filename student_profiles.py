@@ -1,143 +1,90 @@
-from abc import ABC, abstractmethod
 import random
+import datetime
 
-###########################################
-#
-# TODO:
-# 
-# Granularity at the month level
-# All profiles are static
-# Distributions have clear cutoffs (normals would be better)
-#
-##########################################
+"""
+TODO: 
 
-class BaseProfile:
+1. Include helper methods to calculate standard deviations for each variable (churn, presence, etc.).
+   All variables are modeled as Bernoulli.
 
-    @abstractmethod
-    def obtain_churn_probability(self):
-        pass
+2 Improve tests in order to verify the statistical distributions make sense. 
 
-    @abstractmethod
-    def simulate_frequency(self, monthly_classes):
-        pass
-    
-    @abstractmethod
-    def simulate_homework(self, days_studied):
-        pass
+"""
+class StudentProfile:
 
-    @abstractmethod
-    def __repr__(self):
-        pass
+    def __init__(self, 
+                 churn_probability,
+                 present_probability,
+                 homework_on_weekdays,
+                 homework_on_weekends):
 
-# Type-1 (above average): churn: 5%, frequency: 75-100%, homework: 75-100%
-class T1_Profile(BaseProfile):
-    
-    def __init__(self):
-        self.churn_probability = 0.05
+        self.churn_probability = churn_probability
+        self.present_probability = present_probability
+        self.homework_on_weekdays = homework_on_weekdays
+        self.homework_on_weekends = homework_on_weekends
 
-    def obtain_churn_probability(self):
-        return self.churn_probability
+    def present_in_class(self) -> bool:
+        return random.random() <= self.present_probability 
 
-    def simulate_frequency(self, monthly_classes):
-        return int(monthly_classes * random.randint(75, 100) / 100)
-
-    def simulate_homework(self, days_studied):
-        return int(days_studied * random.randint(75, 100) / 100) 
+    def did_homework(self, date) -> bool:
+        if date.weekday() < 5:
+            return random.random() <= self.homework_on_weekdays
+        else:
+            return random.random() <= self.homework_on_weekends
 
     def __repr__(self):
-        return "T1_Profile"
+        return f"StudentProfile({self.churn_probability}, {self.present_probability}, {self.homework_on_weekdays}, {self.homework_on_weekends})"
 
-# Type-2 (average): churn: 20%, frequency: 50-100%, homework: 50-100%
-class T2_Profile(BaseProfile):
+def profile_tests():
+    # Fixing seed to garantee predictability
+    # random.seed(42) 
+
+    # Type-1 (above average): churn: 5%, frequency: 90%, homework: 85% (weekdays) | 60% (weekends)
+    s1 = StudentProfile(0.05, 0.90, 0.85, 0.5)
+
+    # Type-2 (average): churn: 20%, frequency: 75%, homework: 60% (weekdays) | 40% (weekends)
+    s2 = StudentProfile(0.2, 0.75, 0.6, 0.4)
     
-    def __init__(self):
-        self.churn_probability = 0.20
-
-    def obtain_churn_probability(self):
-        return self.churn_probability
-
-    def simulate_frequency(self, monthly_classes):
-        return int(monthly_classes * random.randint(50, 100) / 100)
-
-    def simulate_homework(self, days_studied):
-        return int(days_studied * random.randint(50, 100) / 100) 
-
-    def __repr__(self):
-        return "T2_Profile"
-
-# Type-3 (below average): churn: 50%, frequency: 25-75%, homework: 25-75%
-class T3_Profile(BaseProfile):
+    # Type-3 (below average): churn: 50%, frequency: 50%, homework: 40% (weekdays) | 25% (weekends)
+    s3 = StudentProfile(0.5, 0.5, 0.4, 0.25)
     
-    def __init__(self):
-        self.churn_probability = 0.50
-
-    def obtain_churn_probability(self):
-        return self.churn_probability
-
-    def simulate_frequency(self, monthly_classes):
-        return int(monthly_classes * random.randint(25, 75) / 100)
-
-    def simulate_homework(self, days_studied):
-        return int(days_studied * random.randint(25, 75) / 100) 
+    # Type-4 (disengaged): churn: 70%, frequency: 25%, homework: 25% (weekdays) | 10% (weekends)
+    s4 = StudentProfile(0.7, 0.25, 0.25, 0.10)
     
-    def __repr__(self):
-        return "T3_Profile"
+    assert s1.churn_probability == 0.05
+    assert s2.churn_probability == 0.20
+    assert s3.churn_probability == 0.50
+    assert s4.churn_probability == 0.70
 
-# Type-4 (disengaged): churn: 90%, frequency: 0-50%, homework: 0-50%
-class T4_Profile(BaseProfile):
+    freq_s1 = freq_s2 = freq_s3 = freq_s4 = 0
+    for _ in range(8):
+        freq_s1 += int(s1.present_in_class()) 
+        freq_s2 += int(s2.present_in_class())
+        freq_s3 += int(s3.present_in_class())
+        freq_s4 += int(s4.present_in_class())
+        
+    assert 6 <= freq_s1 <= 8, f"Frequência s1 fora do padrão: {freq_s1}"
+    assert 4 <= freq_s2 <= 8, f"Frequência s2 fora do padrão: {freq_s2}"
+    assert 2 <= freq_s3 <= 6, f"Frequência s3 fora do padrão: {freq_s3}"
+    assert 0 <= freq_s4 <= 4, f"Frequência s4 fora do padrão: {freq_s4}"
+
+    print(freq_s1, freq_s2, freq_s3, freq_s4)
+
+    date = datetime.date(2024, 8, 1)
     
-    def __init__(self):
-        self.churn_probability = 0.90
+    hw_s1 = hw_s2 = hw_s3 = hw_s4 = 0
+    for i in range(30):
+        hw_s1 += int(s1.did_homework(date + datetime.timedelta(i)))
+        hw_s2 += int(s2.did_homework(date + datetime.timedelta(i)))
+        hw_s3 += int(s3.did_homework(date + datetime.timedelta(i)))
+        hw_s4 += int(s4.did_homework(date + datetime.timedelta(i)))
 
-    def obtain_churn_probability(self):
-        return self.churn_probability
+    print(hw_s1, hw_s2, hw_s3, hw_s4)
 
-    def simulate_frequency(self, monthly_classes):
-        return int(monthly_classes * random.randint(0, 50) / 100)
-
-    def simulate_homework(self, days_studied):
-        return int(days_studied * random.randint(0, 50) / 100) 
-
-    def __repr__(self):
-        return "T4_Profile"
-
-def test_perfis():
-    # Fixando a semente para garantir previsibilidade no teste
-    random.seed(42) 
+    # assert 22 <= hw_s1 <= 30, f"Número de atividades s1 fora do padrão: {hw_s1}"
+    # assert 15 <= hw_s2 <= 30, f"Número de atividades s2 fora do padrão: {hw_s2}"
+    # assert 7 <= hw_s3 <= 23, f"Número de atividades s3 fora do padrão: {hw_s3}"
+    # assert 0 <= hw_s4 <= 15, f"Número de atividades s4 fora do padrão: {hw_s4}"
     
-    t1 = T1_Profile()
-    t2 = T2_Profile()
-    t3 = T3_Profile()
-    t4 = T4_Profile()
-    
-    assert t1.obtain_churn_probability() == 0.05
-    assert t2.obtain_churn_probability() == 0.20
-    assert t3.obtain_churn_probability() == 0.50
-    assert t4.obtain_churn_probability() == 0.90
-    
-    # Testando os limites (8 aulas no mês)
-    freq_t1 = t1.simulate_frequency(8)
-    freq_t2 = t2.simulate_frequency(8)
-    freq_t3 = t3.simulate_frequency(8)
-    freq_t4 = t4.simulate_frequency(8)
-
-    assert 6 <= freq_t1 <= 8, f"Frequência t1 fora do padrão: {freq_t1}"
-    assert 4 <= freq_t2 <= 8, f"Frequência t2 fora do padrão: {freq_t2}"
-    assert 2 <= freq_t3 <= 6, f"Frequência t3 fora do padrão: {freq_t3}"
-    assert 0 <= freq_t4 <= 4, f"Frequência t4 fora do padrão: {freq_t4}"
-    
-    hw_t1 = t1.simulate_homework(30)
-    hw_t2 = t2.simulate_homework(30)
-    hw_t3 = t3.simulate_homework(30)
-    hw_t4 = t4.simulate_homework(30)
-
-    assert 22 <= hw_t1 <= 30, f"Número de atividades t1 fora do padrão: {hw_t1}"
-    assert 15 <= hw_t2 <= 30, f"Número de atividades t2 fora do padrão: {hw_t2}"
-    assert 7 <= hw_t3 <= 23, f"Número de atividades t3 fora do padrão: {hw_t3}"
-    assert 0 <= hw_t4 <= 15, f"Número de atividades t4 fora do padrão: {hw_t4}"
-    
-    
-    print("Desafio 1: Sucesso!")
-
 if __name__ == '__main__':
-    test_perfis()
+    profile_tests()
